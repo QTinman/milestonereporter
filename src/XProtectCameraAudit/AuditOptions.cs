@@ -26,6 +26,8 @@ namespace XProtectCameraAudit
 
         public string OutputDirectory = ".";
         public string ReportBaseName = "camera-audit";
+        /// <summary>Customer/company name — shown in the header and baked into the filename.</summary>
+        public string Customer = "";
         public bool PagePerRecorder;
 
         /// <summary>Primary liveness criterion (§4/§7): a frame older than this is amber, not green.</summary>
@@ -74,6 +76,7 @@ namespace XProtectCameraAudit
                         case "--domain": o.Domain = Next(); break;
                         case "--output": o.OutputDirectory = Next(); break;
                         case "--name": o.ReportBaseName = Next(); break;
+                        case "--customer": o.Customer = Next(); break;
                         case "--page-per-recorder": o.PagePerRecorder = true; break;
                         case "--staleness-minutes": o.StalenessMinutes = int.Parse(Next()); break;
                         case "--max-concurrent": o.MaxConcurrentPerRecorder = int.Parse(Next()); break;
@@ -157,7 +160,8 @@ namespace XProtectCameraAudit
                 "",
                 "output:",
                 "  --output <dir>                         output directory (default: current)",
-                "  --name <base>                          report base name (default: camera-audit)",
+                "  --customer <name>                      customer/company; shown in header, baked into filename",
+                "  --name <base>                          report base name when --customer is not set (default: camera-audit)",
                 "  --page-per-recorder                    one HTML page per recording server + index (500+ cams)",
                 "  --redact                               omit hardware addresses/usernames from output",
             });

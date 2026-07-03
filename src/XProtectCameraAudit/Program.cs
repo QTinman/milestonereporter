@@ -50,7 +50,7 @@ namespace XProtectCameraAudit
                     new SnapshotFetcher(options, login).FetchAll(site);
 
                 Directory.CreateDirectory(options.OutputDirectory);
-                string stamp = site.GeneratedAtUtc.ToString("yyyyMMdd-HHmmss");
+                string baseName = BuildBaseName(options, site);
                 var written = new List<string>();
 
                 if (options.PagePerRecorder)
@@ -60,26 +60,26 @@ namespace XProtectCameraAudit
                     foreach (var recorder in site.Recorders)
                     {
                         // page counter keeps filenames unique for duplicate/empty recorder names
-                        string file = string.Format("{0}-{1}-{2:D2}-{3}.html", options.ReportBaseName, stamp, ++page, Slug(recorder.Name));
+                        string file = string.Format("{0}-{1:D2}-{2}.html", baseName, ++page, Slug(recorder.Name));
                         File.WriteAllText(Path.Combine(options.OutputDirectory, file),
                             AuditReportGenerator.GenerateRecorderPage(site, recorder, options), Encoding.UTF8);
                         pages.Add(new KeyValuePair<RecorderAudit, string>(recorder, file));
                         written.Add(file);
                     }
-                    string index = string.Format("{0}-{1}.html", options.ReportBaseName, stamp);
+                    string index = baseName + ".html";
                     File.WriteAllText(Path.Combine(options.OutputDirectory, index),
                         AuditReportGenerator.GenerateIndex(site, options, pages), Encoding.UTF8);
                     written.Insert(0, index);
                 }
                 else
                 {
-                    string html = string.Format("{0}-{1}.html", options.ReportBaseName, stamp);
+                    string html = baseName + ".html";
                     File.WriteAllText(Path.Combine(options.OutputDirectory, html),
                         AuditReportGenerator.GenerateCameraAudit(site, options), Encoding.UTF8);
                     written.Add(html);
                 }
 
-                string csv = string.Format("{0}-{1}.csv", options.ReportBaseName, stamp);
+                string csv = baseName + ".csv";
                 CsvReportWriter.Write(site, options, Path.Combine(options.OutputDirectory, csv));
                 written.Add(csv);
 
@@ -109,11 +109,35 @@ namespace XProtectCameraAudit
             }
         }
 
+        /// <summary>
+        /// Self-identifying file stem. With --customer: "customer-site-yyyyMMdd"
+        /// (e.g. acme-northgate-20260703) so files sort and read as records. A same-day
+        /// re-run overwrites the day's file by design; drop --customer to fall back to a
+        /// timestamped "base-yyyyMMdd-HHmmss" name that never collides.
+        /// </summary>
+        static string BuildBaseName(AuditOptions options, SiteAudit site)
+        {
+            if (!string.IsNullOrEmpty(options.Customer))
+            {
+                string stem = Slug(options.Customer);
+                string sitePart = Slug(site.SiteName);
+                if (sitePart.Length > 0 && sitePart != stem) stem += "-" + sitePart;
+                return stem + "-" + site.GeneratedAtUtc.ToString("yyyyMMdd");
+            }
+            return options.ReportBaseName + "-" + site.GeneratedAtUtc.ToString("yyyyMMdd-HHmmss");
+        }
+
         static string Slug(string name)
         {
             var sb = new StringBuilder();
-            foreach (char c in name.ToLowerInvariant())
-                sb.Append(char.IsLetterOrDigit(c) ? c : '-');
+            char prev = '-';
+            foreach (char c in (name ?? "").ToLowerInvariant())
+            {
+                char m = char.IsLetterOrDigit(c) ? c : '-';
+                if (m == '-' && prev == '-') continue; // collapse runs of separators
+                sb.Append(m);
+                prev = m;
+            }
             return sb.ToString().Trim('-');
         }
     }

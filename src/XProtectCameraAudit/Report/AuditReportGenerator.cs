@@ -23,6 +23,7 @@ namespace XProtectCameraAudit.Report
             sb.AppendLine("<style>" + GetReportCss() + "</style></head><body>");
 
             AppendHeader(sb, site, options);
+            AppendNeedsAttention(sb, site, options, null);
             foreach (var recorder in site.Recorders)
                 AppendRecorderSection(sb, recorder, options);
 
@@ -38,6 +39,9 @@ namespace XProtectCameraAudit.Report
             sb.AppendLine("<title>" + H("Camera Audit — " + site.SiteName) + "</title>");
             sb.AppendLine("<style>" + GetReportCss() + "</style></head><body>");
             AppendHeader(sb, site, options);
+            // Map each recorder to its page so attention rows can deep-link.
+            var links = pages.ToDictionary(p => p.Key, p => p.Value);
+            AppendNeedsAttention(sb, site, options, links);
             sb.AppendLine("<section class=\"recorder\"><h1>Recording servers</h1><ul class=\"index\">");
             foreach (var page in pages)
             {
@@ -75,6 +79,7 @@ namespace XProtectCameraAudit.Report
             sb.AppendLine("<h1>Camera Audit</h1>");
             // Milestone XProtect system info, up front.
             sb.AppendLine("<table class=\"sysinfo\">");
+            if (!string.IsNullOrEmpty(options.Customer)) Row(sb, "Customer", options.Customer);
             Row(sb, "System", "Milestone XProtect");
             Row(sb, "Site", site.SiteName);
             if (!string.IsNullOrEmpty(site.ProductVersion)) Row(sb, "Version", site.ProductVersion);
@@ -87,6 +92,47 @@ namespace XProtectCameraAudit.Report
             sb.AppendFormat("<span class=\"count warn\">{0} stale</span>", stale);
             sb.AppendFormat("<span class=\"count bad\">{0} no frame</span>", noFrame);
             sb.AppendLine("</div></header>");
+        }
+
+        /// <summary>
+        /// Replacement worklist: cameras with no snapshot (no recorded frame or fetch error)
+        /// listed up front so a field engineer sees what needs a physical visit before
+        /// scrolling the full inventory. In page-per-recorder mode each row deep-links to
+        /// the recorder's page. Renders nothing when every camera produced a frame.
+        /// </summary>
+        static void AppendNeedsAttention(StringBuilder sb, SiteAudit site, AuditOptions options,
+            IDictionary<RecorderAudit, string> recorderLinks)
+        {
+            var rows = new List<Tuple<RecorderAudit, HardwareAudit, CameraAudit>>();
+            foreach (var recorder in site.Recorders)
+                foreach (var hw in recorder.Hardwares)
+                    foreach (var cam in hw.Cameras)
+                        if (cam.Snapshot.Status == SnapshotStatus.NoRecordedFrame ||
+                            cam.Snapshot.Status == SnapshotStatus.Error)
+                            rows.Add(Tuple.Create(recorder, hw, cam));
+
+            if (rows.Count == 0) return;
+
+            sb.AppendLine("<section class=\"attention\">");
+            sb.AppendFormat("<h1>Needs attention <span class=\"pill bad\">{0}</span></h1>\n", rows.Count);
+            sb.AppendLine("<p class=\"muted\">Cameras with no snapshot — likely offline or in need of replacement.</p>");
+            sb.AppendLine("<table class=\"worklist\"><thead><tr>" +
+                "<th>Camera</th><th>Recording server</th><th>Hardware</th><th>Brand</th><th>IP</th><th>Reason</th>" +
+                "</tr></thead><tbody>");
+            foreach (var row in rows)
+            {
+                string recorderCell = H(row.Item1.Name);
+                string link;
+                if (recorderLinks != null && recorderLinks.TryGetValue(row.Item1, out link))
+                    recorderCell = "<a href=\"" + H(link) + "\">" + recorderCell + "</a>";
+
+                sb.AppendFormat("<tr><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td><td>{4}</td><td>{5}</td></tr>\n",
+                    H(row.Item3.Name), recorderCell, H(row.Item2.Name),
+                    H(string.IsNullOrEmpty(row.Item2.Model) ? "—" : row.Item2.Model),
+                    options.Redact ? "(redacted)" : H(string.IsNullOrEmpty(row.Item2.Address) ? "—" : row.Item2.Address),
+                    H(row.Item3.Snapshot.FailureReason ?? "no snapshot"));
+            }
+            sb.AppendLine("</tbody></table></section>");
         }
 
         static void AppendRecorderSection(StringBuilder sb, RecorderAudit recorder, AuditOptions options)
@@ -184,6 +230,14 @@ section.recorder { background:var(--card); border:1px solid var(--line); border-
 .pill.ok { background:var(--ok); } .pill.warn { background:var(--warn); } .pill.bad { background:var(--bad); }
 .pill.muted-pill { background:var(--muted); }
 ul.index { font-size:15px; line-height:2; }
+section.attention { background:var(--card); border:1px solid var(--bad); border-left-width:4px;
+                    border-radius:8px; padding:14px 20px; margin-top:20px; }
+section.attention h1 { font-size:18px; margin:0 0 4px; }
+table.worklist { border-collapse:collapse; width:100%; margin-top:8px; font-size:13px; }
+table.worklist th { text-align:left; color:var(--muted); border-bottom:1px solid var(--line);
+                    padding:4px 12px 4px 0; font-weight:600; }
+table.worklist td { padding:4px 12px 4px 0; border-bottom:1px solid var(--line); vertical-align:top; }
+table.worklist tr:last-child td { border-bottom:none; }
 ";
         }
     }

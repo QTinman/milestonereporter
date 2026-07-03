@@ -61,7 +61,7 @@ port **7563** (ImageServer), and the management server on 443/80.
 ## Run
 
 ```
-XProtectCameraAudit --server https://mgmt.example.com --auth basic --user auditor
+XProtectCameraAudit --server https://mgmt.example.com --auth basic --user auditor --customer Acme
 XProtectCameraAudit --server https://mgmt.example.com --auth windows --user CORP\svc-audit --password-env AUDIT_PW
 XProtectCameraAudit --server https://mgmt.example.com --auth windows-current --output C:\reports
 ```
@@ -70,14 +70,22 @@ XProtectCameraAudit --server https://mgmt.example.com --auth windows-current --o
 |---|---|---|
 | `--auth basic\|windows\|windows-current` | `basic` | Site auth mode. External IDP (Entra/Okta/Keycloak) is not supported in v1 — it requires a browser/device-code flow. |
 | `--user`, `--password`, `--password-env`, `--domain` | prompt | Credentials. Password is prompted if not supplied. |
+| `--customer <name>` | — | Customer/company name. Shown in the report header and baked into the filename (`acme-<site>-20260703.html`) so files self-identify in your records. |
 | `--trust-cert-thumbprint <sha1>` | off | Trust exactly one self-signed server certificate (preferred over the option below). |
 | `--trust-any-cert` | off | Accept any certificate — explicit, logged, never silent. Test environments only. |
 | `--staleness-minutes <n>` | 60 | The primary liveness criterion: a frame older than this is amber, not green. |
 | `--max-concurrent <n>` | 8 | Parallel snapshot fetches per recording server. |
 | `--skip-snapshots` | off | Inventory-only run (no ImageServer traffic). |
 | `--page-per-recorder` | off | One HTML page per recording server plus an index — use at 500+ cameras to avoid browser limits. |
-| `--redact` | off | Omit hardware addresses and recorder hostnames from HTML and CSV. |
-| `--output`, `--name`, `--thumb-width` | `.`, `camera-audit`, 320 | Output location and naming. |
+| `--redact` | off | Omit hardware addresses and usernames from HTML and CSV. |
+| `--output`, `--name`, `--thumb-width` | `.`, `camera-audit`, 320 | Output location, base filename (when `--customer` is unset), and thumbnail width. |
+
+The report opens with a **Needs attention** worklist: every camera with no
+snapshot (offline or in need of replacement) is listed up front — camera name,
+recording server, hardware, brand, IP, and reason — so a field engineer sees
+what to visit before scrolling the full inventory. With `--customer` set, the
+filename is `customer-site-yyyyMMdd`; a same-day re-run overwrites that day's
+file (drop `--customer` for a timestamped name that never collides).
 
 Exit codes: `0` every camera produced a frame, `2` completed but some cameras
 have no frame or errored (check the red cards), `1` fatal (login, enumeration,

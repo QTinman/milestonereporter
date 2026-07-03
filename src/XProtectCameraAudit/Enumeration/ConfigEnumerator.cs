@@ -64,8 +64,7 @@ namespace XProtectCameraAudit.Enumeration
                         Model = Safe(() => hw.Model, ""),
                         Address = options.Redact ? "" : Safe(() => hw.Address, ""),
                         Enabled = Safe(() => hw.Enabled, false),
-                        UserName = options.Redact ? "" : Safe(() => hw.UserName, ""),
-                        Password = options.Redact ? "" : ReadHardwarePassword(hw)
+                        UserName = options.Redact ? "" : Safe(() => hw.UserName, "")
                     };
                     recorder.Hardwares.Add(hardware);
 
@@ -117,49 +116,6 @@ namespace XProtectCameraAudit.Enumeration
         {
             try { return get(); }
             catch { return fallback; }
-        }
-
-        /// <summary>
-        /// Reads the device password via Hardware.ReadPasswordHardware() using reflection,
-        /// so the tool compiles across SDK versions where the method shape differs. Returns
-        /// "" when the method is absent, the account lacks "View Hardware Password"
-        /// permission (2022 R1+), or the call fails. Non-fatal.
-        /// </summary>
-        static string ReadHardwarePassword(Hardware hw)
-        {
-            try
-            {
-                var method = hw.GetType().GetMethod("ReadPasswordHardware", Type.EmptyTypes);
-                if (method == null) return "";
-                object result = method.Invoke(hw, null);
-                if (result == null) return "";
-
-                // Result exposes the value either via GetProperty("Password") or a
-                // Properties collection carrying a "Password" key.
-                var getProperty = result.GetType().GetMethod("GetProperty", new[] { typeof(string) });
-                if (getProperty != null)
-                {
-                    var pw = getProperty.Invoke(result, new object[] { "Password" }) as string;
-                    if (!string.IsNullOrEmpty(pw)) return pw;
-                }
-
-                var propsProp = result.GetType().GetProperty("Properties");
-                var props = propsProp != null ? propsProp.GetValue(result, null) : null;
-                if (props != null)
-                {
-                    var getValue = props.GetType().GetMethod("GetValue", new[] { typeof(string) });
-                    if (getValue != null)
-                    {
-                        var pw = getValue.Invoke(props, new object[] { "Password" }) as string;
-                        if (!string.IsNullOrEmpty(pw)) return pw;
-                    }
-                }
-            }
-            catch
-            {
-                // no permission / unsupported / device offline — non-fatal
-            }
-            return "";
         }
 
         static string ReadProductVersion(ManagementServer ms)

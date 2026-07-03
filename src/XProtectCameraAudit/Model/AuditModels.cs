@@ -72,10 +72,9 @@ namespace XProtectCameraAudit.Model
         /// <summary>Device IP/host as XProtect connects to it.</summary>
         public string Address;
         public bool Enabled;
-        /// <summary>Credential XProtect uses to reach the device (shown in Special notes).</summary>
+        /// <summary>Device login user XProtect uses — aids reconfiguring a replacement.
+        /// The password is intentionally never read or reported.</summary>
         public string UserName = "";
-        /// <summary>Device password read via ReadPasswordHardware(); "" if unreadable/redacted.</summary>
-        public string Password = "";
         public List<CameraAudit> Cameras = new List<CameraAudit>();
     }
 

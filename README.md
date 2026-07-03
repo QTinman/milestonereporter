@@ -33,15 +33,12 @@ One process, one login, no API Gateway, no WebRTC, no PowerShell layer.
   XProtect system-info block** (system, site, version, management server,
   generated-at, camera counts), then a section per recording server → heading
   per hardware → card per camera. Each card shows only: **name, snapshot,
-  brand, IP, and Special notes (device username + password)**. The CSV carries
-  the same fields for pivoting.
+  brand, IP, and user** — enough to recognize a physical camera in the field
+  and source/configure a replacement. Passwords are never read or reported.
+  The CSV carries the same fields for pivoting.
 
-> ⚠ The report and CSV contain the device **username and password in
-> cleartext** by design. Treat both files as secrets. Run with `--redact` to
-> omit IP/username/password. Reading device passwords requires the login
-> account to hold the **View Hardware Password** permission (XProtect 2022 R1+);
-> without it the password shows as `(unavailable)` and everything else still
-> works.
+> The report and CSV include the device **IP and username** (no passwords).
+> Run with `--redact` to omit them for a shareable copy.
 
 ## Build
 

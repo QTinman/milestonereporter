@@ -134,17 +134,8 @@ namespace XProtectCameraAudit.Report
             sb.AppendLine("<table>");
             Row(sb, "Brand", string.IsNullOrEmpty(hw.Model) ? "—" : hw.Model);
             Row(sb, "IP", options.Redact ? "(redacted)" : (string.IsNullOrEmpty(hw.Address) ? "—" : hw.Address));
-            Row(sb, "Special notes", CredentialNote(hw, options));
+            Row(sb, "User", options.Redact ? "(redacted)" : (string.IsNullOrEmpty(hw.UserName) ? "—" : hw.UserName));
             sb.AppendLine("</table></div></div>");
-        }
-
-        /// <summary>Device username/password for the Special notes field (§ report content).</summary>
-        static string CredentialNote(HardwareAudit hw, AuditOptions options)
-        {
-            if (options.Redact) return "credentials redacted";
-            string user = string.IsNullOrEmpty(hw.UserName) ? "—" : hw.UserName;
-            string pass = string.IsNullOrEmpty(hw.Password) ? "(unavailable)" : hw.Password;
-            return "User: " + user + "   Pass: " + pass;
         }
 
         static void Row(StringBuilder sb, string label, string value)

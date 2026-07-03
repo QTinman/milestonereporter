@@ -14,7 +14,7 @@ namespace XProtectCameraAudit.Report
             sb.AppendLine(string.Join(",", new[]
             {
                 "RecordingServer","Hardware","CameraName",
-                "Brand","IP","UserName","Password",
+                "Brand","IP","UserName",
                 "SnapshotStatus","FrameTimestampUtc"
             }));
 
@@ -28,7 +28,6 @@ namespace XProtectCameraAudit.Report
                     Csv(hw.Model),
                     Csv(options.Redact ? "" : hw.Address),
                     Csv(options.Redact ? "" : hw.UserName),
-                    Csv(options.Redact ? "" : hw.Password),
                     Csv(cam.Snapshot.Status.ToString()),
                     Csv(cam.Snapshot.FrameTimestampUtc.HasValue
                         ? cam.Snapshot.FrameTimestampUtc.Value.ToString("yyyy-MM-dd HH:mm:ss") : "")

@@ -43,8 +43,8 @@ namespace XProtectCameraAudit
                 Console.WriteLine("Found {0} recording servers, {1} cameras.", site.Recorders.Count, cameraCount);
 
                 if (!options.Redact)
-                    Console.WriteLine("NOTE: report and CSV include device IP/username/password in cleartext. " +
-                                      "Store them securely or run with --redact.");
+                    Console.WriteLine("NOTE: report and CSV include device IP and username (no passwords). " +
+                                      "Run with --redact to omit them.");
 
                 if (!options.SkipSnapshots && cameraCount > 0)
                     new SnapshotFetcher(options, login).FetchAll(site);

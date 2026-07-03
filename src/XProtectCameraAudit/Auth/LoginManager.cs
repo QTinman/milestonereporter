@@ -70,12 +70,18 @@ namespace XProtectCameraAudit.Auth
             }
 
             VideoOS.Platform.SDK.Environment.RemoveAllServers();
-            VideoOS.Platform.SDK.Environment.AddServer(uri, cc);
+            // AddServer(secureOnly, uri, credentials, masterOnly): secureOnly=false so the
+            // caller's scheme (http or https) is honored; masterOnly=false to load the full
+            // site so recording servers across the site enumerate.
+            VideoOS.Platform.SDK.Environment.AddServer(false, uri, cc, false);
             VideoOS.Platform.SDK.Environment.Login(uri);
 
-            var site = EnvironmentManager.Instance.MasterSite;
+            // MasterSite is an FQID; resolve its Item for the display name.
+            var masterSite = EnvironmentManager.Instance.MasterSite;
+            string siteName = "?";
+            try { siteName = Configuration.Instance.GetItem(masterSite).Name; } catch { }
             Console.WriteLine("Logged in to '{0}' ({1}) as {2}",
-                site != null ? site.Name : "?", uri,
+                siteName, uri,
                 _options.Auth == AuthMode.WindowsCurrentUser ? Environment.UserName : _options.User);
         }
 

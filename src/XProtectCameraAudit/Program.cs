@@ -42,6 +42,10 @@ namespace XProtectCameraAudit
                 int cameraCount = site.Recorders.SelectMany(r => r.Hardwares).Sum(h => h.Cameras.Count);
                 Console.WriteLine("Found {0} recording servers, {1} cameras.", site.Recorders.Count, cameraCount);
 
+                if (!options.Redact)
+                    Console.WriteLine("NOTE: report and CSV include device IP/username/password in cleartext. " +
+                                      "Store them securely or run with --redact.");
+
                 if (!options.SkipSnapshots && cameraCount > 0)
                     new SnapshotFetcher(options, login).FetchAll(site);
 

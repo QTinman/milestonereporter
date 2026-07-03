@@ -72,12 +72,17 @@ namespace XProtectCameraAudit.Report
                                           c.Snapshot.Status == SnapshotStatus.Error);
 
             sb.AppendLine("<header>");
-            sb.AppendLine("<h1>Camera Audit — " + H(site.SiteName) + "</h1>");
-            sb.AppendFormat("<p class=\"muted\">{0} &middot; generated {1:yyyy-MM-dd HH:mm:ss}Z &middot; staleness bound {2} min</p>\n",
-                H(site.ServerUri), site.GeneratedAtUtc, options.StalenessMinutes);
+            sb.AppendLine("<h1>Camera Audit</h1>");
+            // Milestone XProtect system info, up front.
+            sb.AppendLine("<table class=\"sysinfo\">");
+            Row(sb, "System", "Milestone XProtect");
+            Row(sb, "Site", site.SiteName);
+            if (!string.IsNullOrEmpty(site.ProductVersion)) Row(sb, "Version", site.ProductVersion);
+            Row(sb, "Management server", site.ServerUri);
+            Row(sb, "Generated", site.GeneratedAtUtc.ToString("yyyy-MM-dd HH:mm:ss") + "Z");
+            Row(sb, "Cameras", total + " total, " + enabled + " enabled");
+            sb.AppendLine("</table>");
             sb.AppendLine("<div class=\"counts\">");
-            sb.AppendFormat("<span class=\"count\">{0} cameras</span>", total);
-            sb.AppendFormat("<span class=\"count\">{0} enabled</span>", enabled);
             sb.AppendFormat("<span class=\"count ok\">{0} fresh</span>", fresh);
             sb.AppendFormat("<span class=\"count warn\">{0} stale</span>", stale);
             sb.AppendFormat("<span class=\"count bad\">{0} no frame</span>", noFrame);
@@ -94,20 +99,19 @@ namespace XProtectCameraAudit.Report
 
             foreach (var hw in recorder.Hardwares)
             {
-                sb.AppendFormat("<h2>{0} <span class=\"muted\">{1}{2}</span>{3}</h2>\n",
-                    H(hw.Name), H(hw.Model),
-                    options.Redact || hw.Address.Length == 0 ? "" : " · " + H(hw.Address),
+                sb.AppendFormat("<h2>{0}{1}</h2>\n",
+                    H(hw.Name),
                     hw.Enabled ? "" : " <span class=\"pill bad\">hardware disabled</span>");
 
                 sb.AppendLine("<div class=\"cards\">");
                 foreach (var cam in hw.Cameras)
-                    AppendCameraCard(sb, cam);
+                    AppendCameraCard(sb, cam, hw, options);
                 sb.AppendLine("</div>");
             }
             sb.AppendLine("</section>");
         }
 
-        static void AppendCameraCard(StringBuilder sb, CameraAudit cam)
+        static void AppendCameraCard(StringBuilder sb, CameraAudit cam, HardwareAudit hw, AuditOptions options)
         {
             string img = cam.Snapshot.ThumbnailBase64 != null
                 ? "data:image/jpeg;base64," + cam.Snapshot.ThumbnailBase64
@@ -128,21 +132,19 @@ namespace XProtectCameraAudit.Report
             sb.AppendFormat("<div class=\"cam-name\">{0} <span class=\"pill {1}\">{2}</span></div>\n",
                 H(cam.Name), pillClass, pillText);
             sb.AppendLine("<table>");
-            Row(sb, "GUID", cam.CameraGuid.ToString());
-            Row(sb, "Channel", cam.Channel.ToString());
-            Row(sb, "Enabled", cam.Enabled ? "yes" : "NO");
-            if (cam.RecordingEnabledHint.Length > 0) Row(sb, "Recording (config hint)", cam.RecordingEnabledHint);
-            string resolution = cam.Snapshot.FrameResolution;
-            if (string.IsNullOrEmpty(resolution)) resolution = cam.ConfiguredResolution;
-            if (!string.IsNullOrEmpty(resolution) || !string.IsNullOrEmpty(cam.ConfiguredCodec))
-                Row(sb, "Resolution / codec", (resolution + " " + cam.ConfiguredCodec).Trim());
-            if (cam.GisPoint.Length > 0) Row(sb, "GPS", cam.GisPoint);
-            if (cam.Snapshot.FrameTimestampUtc.HasValue)
-                Row(sb, "Frame time", cam.Snapshot.FrameTimestampUtc.Value.ToString("yyyy-MM-dd HH:mm:ss") + "Z");
-            if (!string.IsNullOrEmpty(cam.Snapshot.FailureReason) && cam.Snapshot.Status != SnapshotStatus.Skipped)
-                Row(sb, "Note", cam.Snapshot.FailureReason);
-            if (cam.Description.Length > 0) Row(sb, "Description", cam.Description);
+            Row(sb, "Brand", string.IsNullOrEmpty(hw.Model) ? "—" : hw.Model);
+            Row(sb, "IP", options.Redact ? "(redacted)" : (string.IsNullOrEmpty(hw.Address) ? "—" : hw.Address));
+            Row(sb, "Special notes", CredentialNote(hw, options));
             sb.AppendLine("</table></div></div>");
+        }
+
+        /// <summary>Device username/password for the Special notes field (§ report content).</summary>
+        static string CredentialNote(HardwareAudit hw, AuditOptions options)
+        {
+            if (options.Redact) return "credentials redacted";
+            string user = string.IsNullOrEmpty(hw.UserName) ? "—" : hw.UserName;
+            string pass = string.IsNullOrEmpty(hw.Password) ? "(unavailable)" : hw.Password;
+            return "User: " + user + "   Pass: " + pass;
         }
 
         static void Row(StringBuilder sb, string label, string value)
@@ -166,6 +168,9 @@ body { margin:0; padding:24px; font:14px/1.45 'Segoe UI',Arial,sans-serif; color
 header h1, section.recorder>h1 { font-size:22px; margin:0 0 4px; }
 h2 { font-size:15px; margin:18px 0 8px; border-bottom:1px solid var(--line); padding-bottom:4px; }
 .muted { color:var(--muted); font-weight:normal; font-size:13px; }
+.sysinfo { border-collapse:collapse; margin:8px 0 12px; font-size:13.5px; }
+.sysinfo td { padding:2px 16px 2px 0; vertical-align:top; }
+.sysinfo td:first-child { color:var(--muted); white-space:nowrap; font-weight:600; }
 .counts { margin:10px 0 4px; }
 .count { display:inline-block; background:var(--card); border:1px solid var(--line); border-radius:14px;
          padding:3px 12px; margin-right:8px; font-size:13px; }

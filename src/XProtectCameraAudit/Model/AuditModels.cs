@@ -67,9 +67,15 @@ namespace XProtectCameraAudit.Model
     {
         public Guid HardwareGuid;
         public string Name;
+        /// <summary>Device model/brand, e.g. "AXIS P3245-LVE".</summary>
         public string Model;
+        /// <summary>Device IP/host as XProtect connects to it.</summary>
         public string Address;
         public bool Enabled;
+        /// <summary>Credential XProtect uses to reach the device (shown in Special notes).</summary>
+        public string UserName = "";
+        /// <summary>Device password read via ReadPasswordHardware(); "" if unreadable/redacted.</summary>
+        public string Password = "";
         public List<CameraAudit> Cameras = new List<CameraAudit>();
     }
 
@@ -85,6 +91,8 @@ namespace XProtectCameraAudit.Model
     public sealed class SiteAudit
     {
         public string SiteName;
+        /// <summary>XProtect product/version string for the report header; "" if unavailable.</summary>
+        public string ProductVersion = "";
         public string ServerUri;
         public DateTime GeneratedAtUtc;
         public List<RecorderAudit> Recorders = new List<RecorderAudit>();

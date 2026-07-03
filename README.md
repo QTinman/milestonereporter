@@ -29,10 +29,19 @@ One process, one login, no API Gateway, no WebRTC, no PowerShell layer.
   and closed on a single thread. Concurrency is a bounded pool per recording
   server (default 8; more triggers ImageServer back-pressure).
 - **Report** — one HTML file, base64-embedded 320px JPEG thumbnails (q=70,
-  ~15–30 KB each; 500 cameras ≈ 10–15 MB). Section per recording server →
-  heading per hardware (sorted by IP) → card per camera (sorted by channel).
-  Header shows site, generated-at, and total/enabled/fresh/stale/no-frame
-  counts. The CSV carries the same rows for pivoting.
+  ~15–30 KB each; 500 cameras ≈ 10–15 MB). It opens with a **Milestone
+  XProtect system-info block** (system, site, version, management server,
+  generated-at, camera counts), then a section per recording server → heading
+  per hardware → card per camera. Each card shows only: **name, snapshot,
+  brand, IP, and Special notes (device username + password)**. The CSV carries
+  the same fields for pivoting.
+
+> ⚠ The report and CSV contain the device **username and password in
+> cleartext** by design. Treat both files as secrets. Run with `--redact` to
+> omit IP/username/password. Reading device passwords requires the login
+> account to hold the **View Hardware Password** permission (XProtect 2022 R1+);
+> without it the password shows as `(unavailable)` and everything else still
+> works.
 
 ## Build
 

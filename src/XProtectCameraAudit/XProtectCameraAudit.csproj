@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- Repo parity with ANPRMib (§7.3). To move to .NET 8, change to
+         net8.0-windows and bump the MIP SDK package to a version that ships
+         net8 assets (2024 R1 / 24.1 or later). -->
+    <TargetFramework>net48</TargetFramework>
+    <!-- MIP SDK native components are 64-bit only. -->
+    <PlatformTarget>x64</PlatformTarget>
+    <RootNamespace>XProtectCameraAudit</RootNamespace>
+    <AssemblyName>XProtectCameraAudit</AssemblyName>
+    <LangVersion>7.3</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Pin to the site's XProtect version (§7): 23.x ≈ 2023 R1+, 24.x ≈ 2024, 26.x ≈ 2026. -->
+    <PackageReference Include="MilestoneSystems.VideoOS.Platform.SDK" Version="23.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
+
+</Project>

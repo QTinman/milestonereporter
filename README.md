@@ -58,6 +58,35 @@ version that ships .NET 8 assets (2024 R1+).
 The machine running the tool must resolve and reach every recording server on
 port **7563** (ImageServer), and the management server on 443/80.
 
+## Deployment
+
+**Deploy the whole build-output folder — the `.exe` will not run on its own.**
+The MIP SDK loads ~60 dependencies from beside the executable (`Autofac.dll`,
+`VideoOS.*.dll`, media toolkits, VC++ natives) and resolves most of them
+dynamically at runtime, so there is no supported way to trim the set down to a
+handful. Copy the entire `bin\x64\Release\net48\` folder to the target machine
+and run the exe from inside it. Copying only the exe fails immediately with
+`Could not load file or assembly 'Autofac …'`.
+
+The target machine also needs the **Visual C++ 2015–2022 x64 redistributable**
+installed (the `*140*.dll` native runtime depends on it).
+
+You can slim the deployed folder by deleting the locale subfolders
+(`ar-SA` … `zh-TW`), `*.xml`, `*.pdb`, and — since the tool is headless — the
+WPF UI assemblies (`VideoOS.Platform.SDK.UI.dll`, `VideoOS.UI.Common.WPF*.dll`,
+`VideoOS.UI.manifest`). If you only ever run `--skip-snapshots`, the media
+decode group (`libmfx*.dll`, `cudart*`, `nppc*`, `CoreToolkits.dll`,
+`VideoOS.Toolkit.dll`, `AVIExporterClientMW.dll`, `xerces*`, `xqilla*`, the
+`SDK.Export`/`SDK.Media` DLLs) can go too. Everything else is required.
+
+```powershell
+# Copy a slim deployment (no locales / docs / symbols) to C:\camreport\app
+robocopy .\bin\x64\Release\net48 C:\camreport\app /E /XF *.pdb *.xml *.txt `
+  /XD ar-SA bg-BG cs-CZ da-DK de-DE es-ES fa-IR fi-FI fr-FR he-IL hi-IN hr-HR `
+      hu-HU is-IS it-IT ja-JP ko-KR nb-NO nl-NL pl-PL pt-BR ru-RU sk-SK `
+      sr-Latn-RS sv-SE th-TH tr-TR uk-UA zh-CN zh-TW
+```
+
 ## Run
 
 ```

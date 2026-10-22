@@ -46,6 +46,9 @@ namespace XProtectCameraAudit
         /// <summary>Include device passwords — the technician's copy, not the customer's.</summary>
         public bool IncludePasswords;
 
+        /// <summary>Also print the HTML report to PDF (Edge/Chrome headless).</summary>
+        public bool Pdf;
+
         /// <summary>
         /// Where each camera's last good thumbnail is kept between runs; null = none.
         /// Defaults to "snapshots" beside the report.
@@ -96,6 +99,7 @@ namespace XProtectCameraAudit
                         case "--trust-cert-thumbprint": o.TrustedCertThumbprint = Next().Replace(" ", "").ToUpperInvariant(); break;
                         case "--redact": o.Redact = true; break;
                         case "--passwords": o.IncludePasswords = true; break;
+                        case "--pdf": o.Pdf = true; break;
                         case "--archive": o.ArchiveDirectory = Next(); break;
                         case "--no-archive": o._noArchive = true; break;
                         case "--help":
@@ -185,6 +189,7 @@ namespace XProtectCameraAudit
                 "  --name <base>                          report base name when --customer is not set (default: camera-audit)",
                 "  --page-per-recorder                    one HTML page per recording server + index (500+ cams)",
                 "  --redact                               omit hardware addresses/usernames from output",
+                "  --pdf                                  also write the report as PDF (uses Edge or Chrome)",
                 "  --passwords                            include device passwords (technician copy; needs the",
                 "                                         View Hardware Password permission)",
             });

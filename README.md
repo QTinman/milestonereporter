@@ -117,7 +117,8 @@ XProtectCameraAudit --server https://mgmt.example.com --auth windows-current --o
 | `--skip-snapshots` | off | Inventory-only run (no ImageServer traffic). |
 | `--page-per-recorder` | off | One HTML page per recording server plus an index — use at 500+ cameras to avoid browser limits. |
 | `--redact` | off | Omit hardware addresses and usernames from HTML and CSV. |
-| `--passwords` | off | Include device passwords (technician copy). Not with `--redact`. |
+| `--passwords` | off | Include device passwords (technician copy, file name ends `-technician`). Not with `--redact`. |
+| `--pdf` | off | Also write each HTML page as an A4 PDF, printed by Edge (or Chrome) headless — no extra install. |
 | `--archive <dir>` / `--no-archive` | `<output>\snapshots` | Where each camera's last good snapshot is kept between runs, or keep none. |
 | `--output`, `--name`, `--thumb-width` | `.`, `camera-audit`, 320 | Output location, base filename (when `--customer` is unset), and thumbnail width. |
 

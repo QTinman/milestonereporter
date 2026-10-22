@@ -84,6 +84,18 @@ namespace XProtectCameraAudit
                     written.Add(html);
                 }
 
+                if (options.Pdf)
+                {
+                    // Each HTML page written gets its PDF beside it.
+                    foreach (var page in written.ToList())
+                    {
+                        string pdf = Path.ChangeExtension(page, ".pdf");
+                        if (PdfWriter.Write(Path.Combine(options.OutputDirectory, page),
+                                            Path.Combine(options.OutputDirectory, pdf)))
+                            written.Add(pdf);
+                    }
+                }
+
                 string csv = baseName + ".csv";
                 CsvReportWriter.Write(site, options, Path.Combine(options.OutputDirectory, csv));
                 written.Add(csv);
@@ -126,9 +138,15 @@ namespace XProtectCameraAudit
                 string stem = Slug(options.Customer);
                 string sitePart = Slug(site.SiteName);
                 if (sitePart.Length > 0 && sitePart != stem) stem += "-" + sitePart;
-                return stem + "-" + site.GeneratedAtUtc.ToString("yyyyMMdd");
+                return stem + "-" + site.GeneratedAtUtc.ToString("yyyyMMdd") + CopySuffix(options);
             }
-            return options.ReportBaseName + "-" + site.GeneratedAtUtc.ToString("yyyyMMdd-HHmmss");
+            return options.ReportBaseName + "-" + site.GeneratedAtUtc.ToString("yyyyMMdd-HHmmss") + CopySuffix(options);
+        }
+
+        /// <summary>The copy with passwords says so in its name, and never overwrites the customer's.</summary>
+        static string CopySuffix(AuditOptions options)
+        {
+            return options.IncludePasswords ? "-technician" : "";
         }
 
         static string Slug(string name)

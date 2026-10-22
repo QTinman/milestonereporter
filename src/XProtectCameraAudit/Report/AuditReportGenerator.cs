@@ -80,6 +80,7 @@ namespace XProtectCameraAudit.Report
             // Milestone XProtect system info, up front.
             sb.AppendLine("<table class=\"sysinfo\">");
             if (!string.IsNullOrEmpty(options.Customer)) Row(sb, "Customer", options.Customer);
+            if (options.IncludePasswords) Row(sb, "Copy", "Technician — contains device passwords, not for the customer");
             Row(sb, "System", "Milestone XProtect");
             Row(sb, "Site", site.SiteName);
             if (!string.IsNullOrEmpty(site.ProductVersion)) Row(sb, "Version", site.ProductVersion);
@@ -188,7 +189,9 @@ namespace XProtectCameraAudit.Report
 
             sb.AppendLine("<div class=\"card\">");
             sb.AppendLine("<figure>");
-            sb.AppendFormat("<img src=\"{0}\" alt=\"{1}\" loading=\"lazy\"{2}>\n", img, H(cam.Name),
+            // Not loading="lazy": a page printed to PDF would leave the cards below
+            // the first screen without their picture.
+            sb.AppendFormat("<img src=\"{0}\" alt=\"{1}\"{2}>\n", img, H(cam.Name),
                 caption != null ? " class=\"archived\"" : "");
             if (caption != null) sb.AppendFormat("<figcaption>{0}</figcaption>\n", H(caption));
             sb.AppendLine("</figure>");
@@ -278,6 +281,15 @@ table.worklist th { text-align:left; color:var(--muted); border-bottom:1px solid
                     padding:4px 12px 4px 0; font-weight:600; }
 table.worklist td { padding:4px 12px 4px 0; border-bottom:1px solid var(--line); vertical-align:top; }
 table.worklist tr:last-child td { border-bottom:none; }
+@page { size:A4; margin:12mm; }
+@media print {
+  body { padding:0; background:#fff; font-size:12px; }
+  section.recorder, section.attention { border:none; padding:0; margin-top:12px; }
+  .card { break-inside:avoid; width:100%; background:#fff; }
+  h2 { break-after:avoid; }
+  table.worklist tr { break-inside:avoid; }
+  * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+}
 ";
         }
     }

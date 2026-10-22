@@ -42,7 +42,8 @@ namespace XProtectCameraAudit.Snapshot
                 .Select(r => new
                 {
                     Recorder = r,
-                    Cameras = r.Hardwares.SelectMany(h => h.Cameras).ToList()
+                    // Disabled ones have no item to fetch from; they keep their Disabled status.
+                    Cameras = r.Hardwares.SelectMany(h => h.Cameras).Where(c => c.Enabled).ToList()
                 })
                 .Where(x => x.Cameras.Count > 0)
                 .ToList();
@@ -185,12 +186,19 @@ namespace XProtectCameraAudit.Snapshot
             return msg.Length > 120 ? msg.Substring(0, 119) + "…" : msg;
         }
 
+        static string Stamp(SnapshotResult result)
+        {
+            return result.FrameTimestampUtc.HasValue
+                ? result.FrameTimestampUtc.Value.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture) + "Z"
+                : "?";
+        }
+
         static string Describe(SnapshotResult result)
         {
             switch (result.Status)
             {
-                case SnapshotStatus.Fresh: return "fresh (" + result.FrameTimestampUtc + "Z)";
-                case SnapshotStatus.Stale: return "STALE (" + result.FrameTimestampUtc + "Z)";
+                case SnapshotStatus.Fresh: return "fresh (" + Stamp(result) + ")";
+                case SnapshotStatus.Stale: return "STALE (" + Stamp(result) + ")";
                 case SnapshotStatus.NoRecordedFrame: return "no recorded frame";
                 case SnapshotStatus.Error: return "ERROR: " + result.FailureReason;
                 default: return "skipped";

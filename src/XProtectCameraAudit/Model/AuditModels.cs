@@ -14,7 +14,9 @@ namespace XProtectCameraAudit.Model
         /// <summary>Fetch failed (recorder unreachable, item unavailable, ...) — red pill, placeholder image.</summary>
         Error,
         /// <summary>Snapshot phase skipped (--skip-snapshots).</summary>
-        Skipped
+        Skipped,
+        /// <summary>Camera or its hardware is disabled in XProtect — not fetched, not a fault.</summary>
+        Disabled
     }
 
     public sealed class SnapshotResult
@@ -27,6 +29,24 @@ namespace XProtectCameraAudit.Model
         /// <summary>Actual decoded frame size, e.g. "1920x1080". Authoritative, unlike driver config.</summary>
         public string FrameResolution;
         public string FailureReason;
+
+        /// <summary>
+        /// The camera's last good thumbnail from an earlier run (SnapshotArchive), set when
+        /// this run got no frame: a camera broken for longer than the recordings are kept
+        /// still shows where it points, so it can be found.
+        /// </summary>
+        public string ArchivedThumbnailBase64;
+        public DateTime? ArchivedFrameUtc;
+
+        public bool HasNoFrame
+        {
+            get { return Status == SnapshotStatus.NoRecordedFrame || Status == SnapshotStatus.Error; }
+        }
+
+        public static SnapshotResult Disabled()
+        {
+            return new SnapshotResult { Status = SnapshotStatus.Disabled, FailureReason = "disabled in XProtect" };
+        }
 
         public static SnapshotResult Skipped()
         {
@@ -48,6 +68,7 @@ namespace XProtectCameraAudit.Model
     {
         public Guid CameraGuid;
         public string Name;
+        /// <summary>The camera and its hardware both enabled; XProtect serves neither otherwise.</summary>
         public bool Enabled;
         public int Channel;
         public string Description;
@@ -72,9 +93,11 @@ namespace XProtectCameraAudit.Model
         /// <summary>Device IP/host as XProtect connects to it.</summary>
         public string Address;
         public bool Enabled;
-        /// <summary>Device login user XProtect uses — aids reconfiguring a replacement.
-        /// The password is intentionally never read or reported.</summary>
+        /// <summary>Device login user XProtect uses — aids reconfiguring a replacement.</summary>
         public string UserName = "";
+        /// <summary>Device password, read only with --passwords (needs the View Hardware
+        /// Password permission); "" otherwise or when it could not be read.</summary>
+        public string Password = "";
         public List<CameraAudit> Cameras = new List<CameraAudit>();
     }
 

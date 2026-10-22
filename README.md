@@ -32,13 +32,23 @@ One process, one login, no API Gateway, no WebRTC, no PowerShell layer.
   ~15–30 KB each; 500 cameras ≈ 10–15 MB). It opens with a **Milestone
   XProtect system-info block** (system, site, version, management server,
   generated-at, camera counts), then a section per recording server → heading
-  per hardware → card per camera. Each card shows only: **name, snapshot,
-  brand, IP, and user** — enough to recognize a physical camera in the field
-  and source/configure a replacement. Passwords are never read or reported.
-  The CSV carries the same fields for pivoting.
+  per hardware → card per camera. Each card shows **name, snapshot, frame time,
+  brand, IP, and user** (plus the device password with `--passwords`) — enough
+  to recognize a physical camera in the field and source/configure a
+  replacement. Disabled cameras (camera or hardware) are counted apart and
+  listed last, not as faults. The CSV carries the same fields for pivoting.
+- **Snapshot archive** — every run keeps each camera's last good thumbnail in
+  `<output>\snapshots\<camera id>.jpg` (file time = frame time). A camera that
+  breaks and stays broken longer than the recordings are kept still shows its
+  **last known view** with its date, so the technician can find where it
+  hangs and what it covered. Run the tool regularly (e.g. a weekly scheduled
+  task) to keep the archive current.
 
-> The report and CSV include the device **IP and username** (no passwords).
-> Run with `--redact` to omit them for a shareable copy.
+> Two copies from one tool: the **customer copy** (`--redact`, or the default
+> IP + username) and the **technician copy** (`--passwords`, device passwords in
+> cleartext — treat the HTML and CSV as secrets). Reading passwords needs the
+> **View Hardware Password** permission (2022 R1+); without it they show as
+> `(unavailable)`.
 
 ## Build
 
@@ -107,11 +117,14 @@ XProtectCameraAudit --server https://mgmt.example.com --auth windows-current --o
 | `--skip-snapshots` | off | Inventory-only run (no ImageServer traffic). |
 | `--page-per-recorder` | off | One HTML page per recording server plus an index — use at 500+ cameras to avoid browser limits. |
 | `--redact` | off | Omit hardware addresses and usernames from HTML and CSV. |
+| `--passwords` | off | Include device passwords (technician copy). Not with `--redact`. |
+| `--archive <dir>` / `--no-archive` | `<output>\snapshots` | Where each camera's last good snapshot is kept between runs, or keep none. |
 | `--output`, `--name`, `--thumb-width` | `.`, `camera-audit`, 320 | Output location, base filename (when `--customer` is unset), and thumbnail width. |
 
 The report opens with a **Needs attention** worklist: every camera with no
 snapshot (offline or in need of replacement) is listed up front — camera name,
-recording server, hardware, brand, IP, and reason — so a field engineer sees
+recording server, hardware, brand, IP, reason, and when it was last seen
+(from the archive) — so a field engineer sees
 what to visit before scrolling the full inventory. With `--customer` set, the
 filename is `customer-site-yyyyMMdd`; a same-day re-run overwrites that day's
 file (drop `--customer` for a timestamped name that never collides).
@@ -124,7 +137,10 @@ or repeated authorization failure).
 
 - `camera-audit-<timestamp>.html` — the visual audit (self-contained, no
   external resources; safe to mail or archive as a single file).
-- `camera-audit-<timestamp>.csv` — same rows, one per camera, for Excel/pivot.
+- `camera-audit-<timestamp>.csv` — same rows, one per camera, for Excel/pivot,
+  with the camera id (the archive's file name) and `LastSeenUtc`.
+- `snapshots\` — the archive; keep it between runs, it is what remembers a
+  dead camera's view.
 
 ## Notes for operators
 

@@ -72,8 +72,8 @@ namespace XProtectCameraAudit.Report
             int enabled = cams.Count(c => c.Enabled);
             int fresh = cams.Count(c => c.Snapshot.Status == SnapshotStatus.Fresh);
             int stale = cams.Count(c => c.Snapshot.Status == SnapshotStatus.Stale);
-            int noFrame = cams.Count(c => c.Snapshot.Status == SnapshotStatus.NoRecordedFrame ||
-                                          c.Snapshot.Status == SnapshotStatus.Error);
+            int noFrame = cams.Count(c => c.Snapshot.HasNoFrame);
+            int disabled = cams.Count(c => !c.Enabled);
 
             sb.AppendLine("<header>");
             sb.AppendLine("<h1>Camera Audit</h1>");
@@ -91,6 +91,8 @@ namespace XProtectCameraAudit.Report
             sb.AppendFormat("<span class=\"count ok\">{0} fresh</span>", fresh);
             sb.AppendFormat("<span class=\"count warn\">{0} stale</span>", stale);
             sb.AppendFormat("<span class=\"count bad\">{0} no frame</span>", noFrame);
+            if (disabled > 0)
+                sb.AppendFormat("<span class=\"count\">{0} disabled</span>", disabled);
             sb.AppendLine("</div></header>");
         }
 
@@ -107,8 +109,7 @@ namespace XProtectCameraAudit.Report
             foreach (var recorder in site.Recorders)
                 foreach (var hw in recorder.Hardwares)
                     foreach (var cam in hw.Cameras)
-                        if (cam.Snapshot.Status == SnapshotStatus.NoRecordedFrame ||
-                            cam.Snapshot.Status == SnapshotStatus.Error)
+                        if (cam.Snapshot.HasNoFrame)
                             rows.Add(Tuple.Create(recorder, hw, cam));
 
             if (rows.Count == 0) return;
@@ -117,7 +118,7 @@ namespace XProtectCameraAudit.Report
             sb.AppendFormat("<h1>Needs attention <span class=\"pill bad\">{0}</span></h1>\n", rows.Count);
             sb.AppendLine("<p class=\"muted\">Cameras with no snapshot — likely offline or in need of replacement.</p>");
             sb.AppendLine("<table class=\"worklist\"><thead><tr>" +
-                "<th>Camera</th><th>Recording server</th><th>Hardware</th><th>Brand</th><th>IP</th><th>Reason</th>" +
+                "<th>Camera</th><th>Recording server</th><th>Hardware</th><th>Brand</th><th>IP</th><th>Reason</th><th>Last seen</th>" +
                 "</tr></thead><tbody>");
             foreach (var row in rows)
             {
@@ -126,11 +127,13 @@ namespace XProtectCameraAudit.Report
                 if (recorderLinks != null && recorderLinks.TryGetValue(row.Item1, out link))
                     recorderCell = "<a href=\"" + H(link) + "\">" + recorderCell + "</a>";
 
-                sb.AppendFormat("<tr><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td><td>{4}</td><td>{5}</td></tr>\n",
+                var archived = row.Item3.Snapshot.ArchivedFrameUtc;
+                sb.AppendFormat("<tr><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td><td>{4}</td><td>{5}</td><td>{6}</td></tr>\n",
                     H(row.Item3.Name), recorderCell, H(row.Item2.Name),
                     H(string.IsNullOrEmpty(row.Item2.Model) ? "—" : row.Item2.Model),
                     options.Redact ? "(redacted)" : H(string.IsNullOrEmpty(row.Item2.Address) ? "—" : row.Item2.Address),
-                    H(row.Item3.Snapshot.FailureReason ?? "no snapshot"));
+                    H(row.Item3.Snapshot.FailureReason ?? "no snapshot"),
+                    archived.HasValue ? H(Utc(archived.Value)) : "<span class=\"muted\">no snapshot kept</span>");
             }
             sb.AppendLine("</tbody></table></section>");
         }
@@ -159,21 +162,36 @@ namespace XProtectCameraAudit.Report
 
         static void AppendCameraCard(StringBuilder sb, CameraAudit cam, HardwareAudit hw, AuditOptions options)
         {
-            string img = cam.Snapshot.ThumbnailBase64 != null
-                ? "data:image/jpeg;base64," + cam.Snapshot.ThumbnailBase64
-                : ImageHelper.PlaceholderDataUri(cam.Snapshot.FailureReason ?? "no image");
+            var snap = cam.Snapshot;
+            // Without a frame this run, the archived one shows where the camera points -
+            // labelled, so it is not taken for the camera working.
+            string img, caption = null;
+            if (snap.ThumbnailBase64 != null)
+                img = "data:image/jpeg;base64," + snap.ThumbnailBase64;
+            else if (snap.ArchivedThumbnailBase64 != null)
+            {
+                img = "data:image/jpeg;base64," + snap.ArchivedThumbnailBase64;
+                caption = "Last known view, " + Utc(snap.ArchivedFrameUtc.Value);
+            }
+            else
+                img = ImageHelper.PlaceholderDataUri(snap.FailureReason ?? "no image");
 
             string pillClass, pillText;
-            switch (cam.Snapshot.Status)
+            switch (snap.Status)
             {
                 case SnapshotStatus.Fresh: pillClass = "ok"; pillText = "fresh"; break;
                 case SnapshotStatus.Stale: pillClass = "warn"; pillText = "stale"; break;
                 case SnapshotStatus.Skipped: pillClass = "muted-pill"; pillText = "no snapshot"; break;
-                default: pillClass = "bad"; pillText = cam.Snapshot.Status == SnapshotStatus.NoRecordedFrame ? "no frame" : "error"; break;
+                case SnapshotStatus.Disabled: pillClass = "muted-pill"; pillText = "disabled"; break;
+                default: pillClass = "bad"; pillText = snap.Status == SnapshotStatus.NoRecordedFrame ? "no frame" : "error"; break;
             }
 
             sb.AppendLine("<div class=\"card\">");
-            sb.AppendFormat("<img src=\"{0}\" alt=\"{1}\" loading=\"lazy\">\n", img, H(cam.Name));
+            sb.AppendLine("<figure>");
+            sb.AppendFormat("<img src=\"{0}\" alt=\"{1}\" loading=\"lazy\"{2}>\n", img, H(cam.Name),
+                caption != null ? " class=\"archived\"" : "");
+            if (caption != null) sb.AppendFormat("<figcaption>{0}</figcaption>\n", H(caption));
+            sb.AppendLine("</figure>");
             sb.AppendLine("<div class=\"details\">");
             sb.AppendFormat("<div class=\"cam-name\">{0} <span class=\"pill {1}\">{2}</span></div>\n",
                 H(cam.Name), pillClass, pillText);
@@ -181,7 +199,26 @@ namespace XProtectCameraAudit.Report
             Row(sb, "Brand", string.IsNullOrEmpty(hw.Model) ? "—" : hw.Model);
             Row(sb, "IP", options.Redact ? "(redacted)" : (string.IsNullOrEmpty(hw.Address) ? "—" : hw.Address));
             Row(sb, "User", options.Redact ? "(redacted)" : (string.IsNullOrEmpty(hw.UserName) ? "—" : hw.UserName));
+            if (options.IncludePasswords)
+                Row(sb, "Password", string.IsNullOrEmpty(hw.Password) ? "(unavailable)" : hw.Password);
+            if (snap.FrameTimestampUtc.HasValue)
+                Row(sb, "Frame", Utc(snap.FrameTimestampUtc.Value) + " (" + Age(snap.FrameTimestampUtc.Value) + " old)");
+            else if (snap.Status != SnapshotStatus.Skipped && snap.Status != SnapshotStatus.Disabled)
+                Row(sb, "Problem", snap.FailureReason ?? "no snapshot");
             sb.AppendLine("</table></div></div>");
+        }
+
+        static string Utc(DateTime utc)
+        {
+            return utc.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture) + "Z";
+        }
+
+        static string Age(DateTime utc)
+        {
+            var age = DateTime.UtcNow - utc;
+            if (age.TotalMinutes < 90) return Math.Max(0, (int)age.TotalMinutes) + " min";
+            if (age.TotalHours < 48) return (int)age.TotalHours + " h";
+            return (int)age.TotalDays + " days";
         }
 
         static void Row(StringBuilder sb, string label, string value)
@@ -219,7 +256,10 @@ section.recorder { background:var(--card); border:1px solid var(--line); border-
 .cards { display:flex; flex-wrap:wrap; gap:14px; }
 .card { display:flex; gap:12px; border:1px solid var(--line); border-radius:8px; padding:10px;
         background:var(--bg); width:640px; max-width:100%; }
-.card img { width:320px; height:180px; object-fit:contain; background:#20272b; border-radius:4px; flex-shrink:0; }
+.card figure { margin:0; flex-shrink:0; }
+.card img { width:320px; height:180px; object-fit:contain; background:#20272b; border-radius:4px; display:block; }
+.card img.archived { outline:3px solid var(--bad); outline-offset:-3px; filter:grayscale(60%); }
+.card figcaption { font-size:12px; color:var(--bad); font-weight:600; margin-top:3px; }
 .details { min-width:0; }
 .cam-name { font-weight:600; margin-bottom:6px; }
 .details table { border-collapse:collapse; font-size:12.5px; }

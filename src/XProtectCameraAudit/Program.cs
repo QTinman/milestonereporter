@@ -42,12 +42,17 @@ namespace XProtectCameraAudit
                 int cameraCount = site.Recorders.SelectMany(r => r.Hardwares).Sum(h => h.Cameras.Count);
                 Console.WriteLine("Found {0} recording servers, {1} cameras.", site.Recorders.Count, cameraCount);
 
-                if (!options.Redact)
+                if (options.IncludePasswords)
+                    Console.WriteLine("NOTE: report and CSV include device IP, username and PASSWORD in cleartext - " +
+                                      "a technician's copy; do not hand it to the customer.");
+                else if (!options.Redact)
                     Console.WriteLine("NOTE: report and CSV include device IP and username (no passwords). " +
                                       "Run with --redact to omit them.");
 
                 if (!options.SkipSnapshots && cameraCount > 0)
                     new SnapshotFetcher(options, login).FetchAll(site);
+                if (options.ArchiveDirectory != null)
+                    new SnapshotArchive(options.ArchiveDirectory).Apply(site);
 
                 Directory.CreateDirectory(options.OutputDirectory);
                 string baseName = BuildBaseName(options, site);
@@ -88,8 +93,7 @@ namespace XProtectCameraAudit
                     Console.WriteLine("Wrote " + Path.Combine(options.OutputDirectory, file));
 
                 var cams = site.Recorders.SelectMany(r => r.Hardwares).SelectMany(h => h.Cameras).ToList();
-                bool gaps = cams.Any(c => c.Snapshot.Status == SnapshotStatus.NoRecordedFrame ||
-                                          c.Snapshot.Status == SnapshotStatus.Error);
+                bool gaps = cams.Any(c => c.Snapshot.HasNoFrame);
                 return gaps ? 2 : 0;
             }
             catch (AuditFatalException ex)

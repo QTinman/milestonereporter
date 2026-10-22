@@ -64,7 +64,8 @@ namespace XProtectCameraAudit.Enumeration
                         Model = Safe(() => hw.Model, ""),
                         Address = options.Redact ? "" : Safe(() => hw.Address, ""),
                         Enabled = Safe(() => hw.Enabled, false),
-                        UserName = options.Redact ? "" : Safe(() => hw.UserName, "")
+                        UserName = options.Redact ? "" : Safe(() => hw.UserName, ""),
+                        Password = options.IncludePasswords ? ReadHardwarePassword(hw) : ""
                     };
                     recorder.Hardwares.Add(hardware);
 
@@ -74,7 +75,9 @@ namespace XProtectCameraAudit.Enumeration
                         {
                             CameraGuid = ParseGuid(Safe(() => cam.Id, "")),
                             Name = Safe(() => cam.Name, "(unnamed camera)"),
-                            Enabled = Safe(() => cam.Enabled, false),
+                            // A camera on disabled hardware reports itself enabled, but
+                            // XProtect serves it no more than a disabled one.
+                            Enabled = hardware.Enabled && Safe(() => cam.Enabled, false),
                             Channel = Safe(() => cam.Channel, 0),
                             Description = Safe(() => cam.Description, ""),
                             GisPoint = NormalizeGis(Safe(() => cam.GisPoint, "")),
@@ -84,12 +87,15 @@ namespace XProtectCameraAudit.Enumeration
                             ConfiguredCodec = ProbeStreamProperty(cam, "Codec"),
                             ConfiguredResolution = ProbeStreamProperty(cam, "Resolution")
                         };
+                        if (!audit.Enabled) audit.Snapshot = SnapshotResult.Disabled();
                         hardware.Cameras.Add(audit);
                     }
                 }
 
+                // Hardware with nothing enabled last: what a technician comes for is above it.
                 recorder.Hardwares = recorder.Hardwares
-                    .OrderBy(h => h.Address, StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(h => h.Cameras.Any(c => c.Enabled) ? 0 : 1)
+                    .ThenBy(h => h.Address, StringComparer.OrdinalIgnoreCase)
                     .ThenBy(h => h.Name, StringComparer.OrdinalIgnoreCase)
                     .ToList();
                 foreach (var h in recorder.Hardwares)
@@ -116,6 +122,30 @@ namespace XProtectCameraAudit.Enumeration
         {
             try { return get(); }
             catch { return fallback; }
+        }
+
+        /// <summary>
+        /// The device password XProtect logs in with. Needs the View Hardware Password
+        /// permission (2022 R1+); "" without it or when the task fails — non-fatal, the
+        /// card then says "(unavailable)".
+        /// </summary>
+        static string ReadHardwarePassword(Hardware hw)
+        {
+            try
+            {
+                ServerTask task = hw.ReadPasswordHardware();
+                for (int i = 0; i < 50 && task.State == StateEnum.InProgress; i++)
+                {
+                    System.Threading.Thread.Sleep(100);
+                    task.UpdateState();
+                }
+                if (task.State != StateEnum.Success) return "";
+                return task.GetProperty("Password") ?? "";
+            }
+            catch
+            {
+                return "";
+            }
         }
 
         static string ReadProductVersion(ManagementServer ms)

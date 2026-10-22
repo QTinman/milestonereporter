@@ -43,6 +43,16 @@ namespace XProtectCameraAudit
         /// <summary>Omit hardware address/username-style fields from the report and CSV.</summary>
         public bool Redact;
 
+        /// <summary>Include device passwords — the technician's copy, not the customer's.</summary>
+        public bool IncludePasswords;
+
+        /// <summary>
+        /// Where each camera's last good thumbnail is kept between runs; null = none.
+        /// Defaults to "snapshots" beside the report.
+        /// </summary>
+        public string ArchiveDirectory;
+        bool _noArchive;
+
         public static AuditOptions Parse(string[] args, out string error)
         {
             error = null;
@@ -85,6 +95,9 @@ namespace XProtectCameraAudit
                         case "--trust-any-cert": o.TrustAnyCertificate = true; break;
                         case "--trust-cert-thumbprint": o.TrustedCertThumbprint = Next().Replace(" ", "").ToUpperInvariant(); break;
                         case "--redact": o.Redact = true; break;
+                        case "--passwords": o.IncludePasswords = true; break;
+                        case "--archive": o.ArchiveDirectory = Next(); break;
+                        case "--no-archive": o._noArchive = true; break;
                         case "--help":
                         case "-h": error = ""; return null;
                         default: error = "unknown argument '" + a + "'"; return null;
@@ -98,6 +111,11 @@ namespace XProtectCameraAudit
             }
 
             if (o.ServerUri == null) { error = "--server is required"; return null; }
+            if (o.Redact && o.IncludePasswords) { error = "--redact and --passwords exclude each other"; return null; }
+
+            if (o._noArchive) o.ArchiveDirectory = null;
+            else if (string.IsNullOrEmpty(o.ArchiveDirectory))
+                o.ArchiveDirectory = System.IO.Path.Combine(o.OutputDirectory, "snapshots");
 
             if (o.Password == null && passwordEnv != null)
                 o.Password = Environment.GetEnvironmentVariable(passwordEnv);
@@ -157,6 +175,9 @@ namespace XProtectCameraAudit
                 "  --max-concurrent <n>                   parallel fetches per recording server (default: 8)",
                 "  --thumb-width <px>                     thumbnail width (default: 320)",
                 "  --skip-snapshots                       inventory only, no frames",
+                "  --archive <dir>                        keep each camera's last good snapshot here between runs,",
+                "                                         shown when a camera later has none (default: <output>\\snapshots)",
+                "  --no-archive                           do not read or keep the archive",
                 "",
                 "output:",
                 "  --output <dir>                         output directory (default: current)",
@@ -164,6 +185,8 @@ namespace XProtectCameraAudit
                 "  --name <base>                          report base name when --customer is not set (default: camera-audit)",
                 "  --page-per-recorder                    one HTML page per recording server + index (500+ cams)",
                 "  --redact                               omit hardware addresses/usernames from output",
+                "  --passwords                            include device passwords (technician copy; needs the",
+                "                                         View Hardware Password permission)",
             });
         }
     }

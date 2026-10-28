@@ -115,6 +115,7 @@ XProtectCameraAudit --server https://mgmt.example.com --auth windows-current --o
 | `--staleness-minutes <n>` | 60 | The primary liveness criterion: a frame older than this is amber, not green. |
 | `--max-concurrent <n>` | 8 | Parallel snapshot fetches per recording server. |
 | `--skip-snapshots` | off | Inventory-only run (no ImageServer traffic). |
+| `--recorder <name\|host>` | all | Only this recording server, by name or host name (a short host name matches the FQDN). Repeat for several. A name that matches nothing stops the run and lists the site's servers. The report header and file name then say which servers it covers. |
 | `--page-per-recorder` | off | One HTML page per recording server plus an index — use at 500+ cameras to avoid browser limits. |
 | `--redact` | off | Omit hardware addresses and usernames from HTML and CSV. |
 | `--passwords` | off | Include device passwords (technician copy, file name ends `-technician`). Not with `--redact`. |

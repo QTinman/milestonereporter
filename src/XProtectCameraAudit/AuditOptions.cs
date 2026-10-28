@@ -29,6 +29,10 @@ namespace XProtectCameraAudit
         /// <summary>Customer/company name — shown in the header and baked into the filename.</summary>
         public string Customer = "";
         public bool PagePerRecorder;
+        /// <summary>
+        /// Recording servers to report on, by name or host name; empty = all of them.
+        /// </summary>
+        public List<string> Recorders = new List<string>();
 
         /// <summary>Primary liveness criterion (§4/§7): a frame older than this is amber, not green.</summary>
         public int StalenessMinutes = 60;
@@ -91,6 +95,7 @@ namespace XProtectCameraAudit
                         case "--name": o.ReportBaseName = Next(); break;
                         case "--customer": o.Customer = Next(); break;
                         case "--page-per-recorder": o.PagePerRecorder = true; break;
+                        case "--recorder": o.Recorders.Add(Next().Trim()); break;
                         case "--staleness-minutes": o.StalenessMinutes = int.Parse(Next()); break;
                         case "--max-concurrent": o.MaxConcurrentPerRecorder = int.Parse(Next()); break;
                         case "--skip-snapshots": o.SkipSnapshots = true; break;
@@ -173,6 +178,10 @@ namespace XProtectCameraAudit
                 "certificates (self-signed servers — explicit opt-in only, never silent):",
                 "  --trust-cert-thumbprint <sha1-hex>     trust exactly this server certificate",
                 "  --trust-any-cert                       trust any certificate (logs each one; test only)",
+                "",
+                "scope:",
+                "  --recorder <name|host>                 only this recording server, by name or host name;",
+                "                                         repeat for several (default: all of them)",
                 "",
                 "snapshots:",
                 "  --staleness-minutes <n>                frame older than this = stale/amber (default: 60)",

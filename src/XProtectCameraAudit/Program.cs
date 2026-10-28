@@ -40,7 +40,12 @@ namespace XProtectCameraAudit
                 Console.WriteLine("Enumerating configuration...");
                 var site = ConfigEnumerator.Enumerate(options);
                 int cameraCount = site.Recorders.SelectMany(r => r.Hardwares).Sum(h => h.Cameras.Count);
-                Console.WriteLine("Found {0} recording servers, {1} cameras.", site.Recorders.Count, cameraCount);
+                if (site.RecordersOnSite > site.Recorders.Count)
+                    Console.WriteLine("Reporting on {0} of {1} recording servers: {2}; {3} cameras.",
+                        site.Recorders.Count, site.RecordersOnSite,
+                        string.Join(", ", site.Recorders.Select(r => r.Name)), cameraCount);
+                else
+                    Console.WriteLine("Found {0} recording servers, {1} cameras.", site.Recorders.Count, cameraCount);
 
                 if (options.IncludePasswords)
                     Console.WriteLine("NOTE: report and CSV include device IP, username and PASSWORD in cleartext - " +
@@ -138,9 +143,19 @@ namespace XProtectCameraAudit
                 string stem = Slug(options.Customer);
                 string sitePart = Slug(site.SiteName);
                 if (sitePart.Length > 0 && sitePart != stem) stem += "-" + sitePart;
-                return stem + "-" + site.GeneratedAtUtc.ToString("yyyyMMdd") + CopySuffix(options);
+                return stem + "-" + site.GeneratedAtUtc.ToString("yyyyMMdd") + ScopeSuffix(site) + CopySuffix(options);
             }
-            return options.ReportBaseName + "-" + site.GeneratedAtUtc.ToString("yyyyMMdd-HHmmss") + CopySuffix(options);
+            return options.ReportBaseName + "-" + site.GeneratedAtUtc.ToString("yyyyMMdd-HHmmss") + ScopeSuffix(site) + CopySuffix(options);
+        }
+
+        /// <summary>
+        /// A report on some of the recording servers names them, so it reads as partial
+        /// and a same-day run never overwrites the whole site's report.
+        /// </summary>
+        static string ScopeSuffix(SiteAudit site)
+        {
+            if (site.RecordersOnSite <= site.Recorders.Count) return "";
+            return "-" + string.Join("-", site.Recorders.Select(r => Slug(r.Name)).Where(s => s.Length > 0));
         }
 
         /// <summary>The copy with passwords says so in its name, and never overwrites the customer's.</summary>

@@ -118,5 +118,7 @@ namespace XProtectCameraAudit.Model
         public string ServerUri;
         public DateTime GeneratedAtUtc;
         public List<RecorderAudit> Recorders = new List<RecorderAudit>();
+        /// <summary>How many recording servers the site has; more than Recorders.Count when --recorder narrowed it.</summary>
+        public int RecordersOnSite;
     }
 }

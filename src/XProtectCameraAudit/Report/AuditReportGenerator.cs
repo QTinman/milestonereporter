@@ -86,6 +86,9 @@ namespace XProtectCameraAudit.Report
             if (!string.IsNullOrEmpty(site.ProductVersion)) Row(sb, "Version", site.ProductVersion);
             Row(sb, "Management server", site.ServerUri);
             Row(sb, "Generated", site.GeneratedAtUtc.ToString("yyyy-MM-dd HH:mm:ss") + "Z");
+            if (site.RecordersOnSite > site.Recorders.Count)
+                Row(sb, "Recording servers", string.Join(", ", site.Recorders.Select(r => r.Name)) +
+                    " (" + site.Recorders.Count + " of " + site.RecordersOnSite + " on the site)");
             Row(sb, "Cameras", total + " total, " + enabled + " enabled");
             sb.AppendLine("</table>");
             sb.AppendLine("<div class=\"counts\">");

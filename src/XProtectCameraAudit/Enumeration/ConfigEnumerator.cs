@@ -5,6 +5,7 @@ using System.Linq;
 using VideoOS.Platform;
 using VideoOS.Platform.ConfigurationItems;
 using XProtectCameraAudit.Model;
+using XProtectCameraAudit.Snapshot;
 
 namespace XProtectCameraAudit.Enumeration
 {
@@ -31,7 +32,10 @@ namespace XProtectCameraAudit.Enumeration
             var ms = new ManagementServer(masterSite);
             site.ProductVersion = ReadProductVersion(ms);
 
-            foreach (RecordingServer rs in ms.RecordingServerFolder.RecordingServers)
+            var all = ms.RecordingServerFolder.RecordingServers.ToList();
+            site.RecordersOnSite = all.Count;
+
+            foreach (RecordingServer rs in SelectRecorders(all, options.Recorders))
             {
                 var recorder = new RecorderAudit
                 {
@@ -104,6 +108,51 @@ namespace XProtectCameraAudit.Enumeration
 
             site.Recorders = site.Recorders.OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase).ToList();
             return site;
+        }
+
+        /// <summary>
+        /// The recording servers --recorder names, or all of them when none is given.
+        /// A name that matches nothing stops the run: a typo should not produce a
+        /// report that looks complete but is missing a server.
+        /// </summary>
+        static List<RecordingServer> SelectRecorders(List<RecordingServer> all, List<string> wanted)
+        {
+            if (wanted.Count == 0) return all;
+
+            var chosen = new List<RecordingServer>();
+            var unknown = new List<string>();
+            foreach (string name in wanted)
+            {
+                var matches = all.Where(rs => RecorderMatches(rs, name)).ToList();
+                if (matches.Count == 0) unknown.Add(name);
+                chosen.AddRange(matches.Where(rs => !chosen.Contains(rs)));
+            }
+
+            if (unknown.Count > 0)
+            {
+                var available = all.Select(rs =>
+                {
+                    string name = Safe(() => rs.Name, "(unnamed recorder)");
+                    string host = Safe(() => rs.HostName, "");
+                    return host.Length > 0 && !host.Equals(name, StringComparison.OrdinalIgnoreCase)
+                        ? name + " (" + host + ")" : name;
+                });
+                throw new AuditFatalException(
+                    "no recording server matches --recorder " + string.Join(", ", unknown.Select(u => "'" + u + "'")) +
+                    ". The site has: " + string.Join(", ", available), null);
+            }
+            return chosen;
+        }
+
+        /// <summary>Name or host name, ignoring case; a short host name matches the FQDN.</summary>
+        static bool RecorderMatches(RecordingServer rs, string wanted)
+        {
+            string name = Safe(() => rs.Name, "");
+            string host = Safe(() => rs.HostName, "");
+            string shortHost = host.Split('.')[0];
+            return wanted.Equals(name, StringComparison.OrdinalIgnoreCase)
+                || wanted.Equals(host, StringComparison.OrdinalIgnoreCase)
+                || (shortHost.Length > 0 && wanted.Equals(shortHost, StringComparison.OrdinalIgnoreCase));
         }
 
         static string NormalizeGis(string wkt)

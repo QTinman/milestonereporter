@@ -74,7 +74,7 @@ port **7563** (ImageServer), and the management server on 443/80.
 The MIP SDK loads ~60 dependencies from beside the executable (`Autofac.dll`,
 `VideoOS.*.dll`, media toolkits, VC++ natives) and resolves most of them
 dynamically at runtime, so there is no supported way to trim the set down to a
-handful. Copy the entire `bin\x64\Release\net48\` folder to the target machine
+handful. Copy the entire `bin\Release\net48\` folder to the target machine
 and run the exe from inside it. Copying only the exe fails immediately with
 `Could not load file or assembly 'Autofac …'`.
 
@@ -91,7 +91,7 @@ decode group (`libmfx*.dll`, `cudart*`, `nppc*`, `CoreToolkits.dll`,
 
 ```powershell
 # Copy a slim deployment (no locales / docs / symbols) to C:\camreport\app
-robocopy .\bin\x64\Release\net48 C:\camreport\app /E /XF *.pdb *.xml *.txt `
+robocopy .\bin\Release\net48 C:\camreport\app /E /XF *.pdb *.xml *.txt `
   /XD ar-SA bg-BG cs-CZ da-DK de-DE es-ES fa-IR fi-FI fr-FR he-IL hi-IN hr-HR `
       hu-HU is-IS it-IT ja-JP ko-KR nb-NO nl-NL pl-PL pt-BR ru-RU sk-SK `
       sr-Latn-RS sv-SE th-TH tr-TR uk-UA zh-CN zh-TW

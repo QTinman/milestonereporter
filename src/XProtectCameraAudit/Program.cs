@@ -47,6 +47,15 @@ namespace XProtectCameraAudit
                 else
                     Console.WriteLine("Found {0} recording servers, {1} cameras.", site.Recorders.Count, cameraCount);
 
+                if (options.SwitchPortFiles.Count > 0)
+                {
+                    var switchPorts = SwitchPortMap.Load(options.SwitchPortFiles);
+                    int placed = switchPorts.Apply(site);
+                    int devices = site.Recorders.Sum(r => r.Hardwares.Count);
+                    Console.WriteLine("Switch ports: {0} addresses read ({1} lines skipped); {2} of {3} devices placed.",
+                        switchPorts.Lines, switchPorts.Skipped, placed, devices);
+                }
+
                 if (options.IncludePasswords)
                     Console.WriteLine("NOTE: report and CSV include device IP, username and PASSWORD in cleartext - " +
                                       "a technician's copy; do not hand it to the customer.");

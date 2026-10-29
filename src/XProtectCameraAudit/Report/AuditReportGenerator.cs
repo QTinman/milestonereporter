@@ -205,6 +205,10 @@ namespace XProtectCameraAudit.Report
             Row(sb, "Brand", string.IsNullOrEmpty(hw.Model) ? "—" : hw.Model);
             Row(sb, "IP", options.Redact ? "(redacted)" : (string.IsNullOrEmpty(hw.Address) ? "—" : hw.Address));
             Row(sb, "MAC", options.Redact ? "(redacted)" : (string.IsNullOrEmpty(hw.MacAddress) ? "—" : hw.MacAddress));
+            if (options.SwitchPortFiles.Count > 0)
+                Row(sb, "Switch", string.IsNullOrEmpty(hw.Switch) && string.IsNullOrEmpty(hw.SwitchPort) ? "not found"
+                    : (hw.Switch.Length > 0 ? hw.Switch + " " : "") + hw.SwitchPort +
+                      (hw.SwitchVlan.Length > 0 ? " (" + hw.SwitchVlan + ")" : ""));
             Row(sb, "User", options.Redact ? "(redacted)" : (string.IsNullOrEmpty(hw.UserName) ? "—" : hw.UserName));
             if (options.IncludePasswords)
                 Row(sb, "Password", string.IsNullOrEmpty(hw.Password) ? "(unavailable)" : hw.Password);

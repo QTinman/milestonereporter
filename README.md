@@ -121,6 +121,7 @@ XProtectCameraAudit --server https://mgmt.example.com --auth windows-current --o
 | `--max-concurrent <n>` | 8 | Parallel snapshot fetches per recording server. |
 | `--skip-snapshots` | off | Inventory-only run (no ImageServer traffic). |
 | `--recorder <name\|host>` | all | Only this recording server, by name or host name (a short host name matches the FQDN). Repeat for several. A name that matches nothing stops the run and lists the site's servers. The report header and file name then say which servers it covers. |
+| `--switch-ports <file>` | — | Switch export, one address per line, tab-separated: `Internet  10.110.26.103  Gi1/0/5  a0bd.1df8.0149  ARPA  Vlan110  0102-s04 - 19009106`. Each device is matched by MAC (or by IP when its MAC is unknown) and its switch, port and VLAN shown on the card and in the CSV. A MAC also appears on the uplinks; the port with the fewest addresses is taken as the device's own. Repeat for several files. |
 | `--page-per-recorder` | off | One HTML page per recording server plus an index — use at 500+ cameras to avoid browser limits. |
 | `--redact` | off | Omit hardware addresses and usernames from HTML and CSV. |
 | `--passwords` | off | Include device passwords (technician copy, file name ends `-technician`). Not with `--redact`. |

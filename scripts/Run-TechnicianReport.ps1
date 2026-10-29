@@ -22,6 +22,10 @@
     Only the recording server RS-North (by name or host name).
 
 .EXAMPLE
+    .\Run-TechnicianReport.ps1 -Customer "Acme" -SwitchPorts .\switches.txt
+    With each device's switch and port, from the switches' export.
+
+.EXAMPLE
     .\Run-TechnicianReport.ps1 -Server https://mgmt.acme.local -Customer "Acme" -Recorder RS-North,RS-South -Auth basic -User tech
     Two recording servers on another Management Server, as a Basic user (the
     password is asked for).
@@ -32,6 +36,10 @@ param(
 
     # Recording servers to report on, by name or host name. Leave out for all.
     [string[]]$Recorder = @(),
+
+    # Switch exports (IP, port, MAC, VLAN, switch per line, tab-separated); each
+    # device's switch and port is then shown. Several files: -SwitchPorts a.txt,b.txt
+    [string[]]$SwitchPorts = @(),
 
     # Customer name; shown in the report and used in the file name.
     [string]$Customer = "",
@@ -73,6 +81,9 @@ $arguments = @("--server", $Server, "--auth", $Auth, "--passwords", "--output", 
 if ($Customer) { $arguments += @("--customer", $Customer) }
 foreach ($r in $Recorder) {
     if ($r.Trim()) { $arguments += @("--recorder", $r.Trim()) }
+}
+foreach ($f in $SwitchPorts) {
+    if ($f.Trim()) { $arguments += @("--switch-ports", (Resolve-Path $f.Trim()).Path) }
 }
 if (-not $NoPdf) { $arguments += "--pdf" }
 if ($SkipSnapshots) { $arguments += "--skip-snapshots" }

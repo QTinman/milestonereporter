@@ -34,6 +34,9 @@ namespace XProtectCameraAudit
         /// </summary>
         public List<string> Recorders = new List<string>();
 
+        /// <summary>Switch exports (IP, port, MAC, VLAN, switch per line) to place each device.</summary>
+        public List<string> SwitchPortFiles = new List<string>();
+
         /// <summary>Primary liveness criterion (§4/§7): a frame older than this is amber, not green.</summary>
         public int StalenessMinutes = 60;
         /// <summary>Bounded pool per recording server; >8 tends to trigger ImageServer back-pressure (§5).</summary>
@@ -96,6 +99,7 @@ namespace XProtectCameraAudit
                         case "--customer": o.Customer = Next(); break;
                         case "--page-per-recorder": o.PagePerRecorder = true; break;
                         case "--recorder": o.Recorders.Add(Next().Trim()); break;
+                        case "--switch-ports": o.SwitchPortFiles.Add(Next()); break;
                         case "--staleness-minutes": o.StalenessMinutes = int.Parse(Next()); break;
                         case "--max-concurrent": o.MaxConcurrentPerRecorder = int.Parse(Next()); break;
                         case "--skip-snapshots": o.SkipSnapshots = true; break;
@@ -121,6 +125,8 @@ namespace XProtectCameraAudit
 
             if (o.ServerUri == null) { error = "--server is required"; return null; }
             if (o.Redact && o.IncludePasswords) { error = "--redact and --passwords exclude each other"; return null; }
+            foreach (var file in o.SwitchPortFiles)
+                if (!System.IO.File.Exists(file)) { error = "--switch-ports: no such file '" + file + "'"; return null; }
 
             if (o._noArchive) o.ArchiveDirectory = null;
             else if (string.IsNullOrEmpty(o.ArchiveDirectory))
@@ -182,6 +188,9 @@ namespace XProtectCameraAudit
                 "scope:",
                 "  --recorder <name|host>                 only this recording server, by name or host name;",
                 "                                         repeat for several (default: all of them)",
+                "",
+                "  --switch-ports <file>                  switch export (IP, port, MAC, VLAN, switch per line);",
+                "                                         shows each device's switch and port. Repeat for several",
                 "",
                 "snapshots:",
                 "  --staleness-minutes <n>                frame older than this = stale/amber (default: 60)",

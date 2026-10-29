@@ -204,6 +204,7 @@ namespace XProtectCameraAudit.Report
             sb.AppendLine("<table>");
             Row(sb, "Brand", string.IsNullOrEmpty(hw.Model) ? "—" : hw.Model);
             Row(sb, "IP", options.Redact ? "(redacted)" : (string.IsNullOrEmpty(hw.Address) ? "—" : hw.Address));
+            Row(sb, "MAC", options.Redact ? "(redacted)" : (string.IsNullOrEmpty(hw.MacAddress) ? "—" : hw.MacAddress));
             Row(sb, "User", options.Redact ? "(redacted)" : (string.IsNullOrEmpty(hw.UserName) ? "—" : hw.UserName));
             if (options.IncludePasswords)
                 Row(sb, "Password", string.IsNullOrEmpty(hw.Password) ? "(unavailable)" : hw.Password);

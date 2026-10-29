@@ -92,6 +92,10 @@ namespace XProtectCameraAudit.Model
         public string Model;
         /// <summary>Device IP/host as XProtect connects to it.</summary>
         public string Address;
+        /// <summary>"AA:BB:CC:DD:EE:FF", for finding the switch port; "" when unknown or redacted.</summary>
+        public string MacAddress = "";
+        /// <summary>Where MacAddress came from: "XProtect" (driver settings) or "ARP".</summary>
+        public string MacSource = "";
         public bool Enabled;
         /// <summary>Device login user XProtect uses — aids reconfiguring a replacement.</summary>
         public string UserName = "";

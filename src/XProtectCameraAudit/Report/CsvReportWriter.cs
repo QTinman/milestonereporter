@@ -15,7 +15,7 @@ namespace XProtectCameraAudit.Report
             var header = new List<string>
             {
                 "RecordingServer","Hardware","CameraName","CameraId",
-                "Brand","IP","UserName"
+                "Brand","IP","MAC","MacSource","UserName"
             };
             if (options.IncludePasswords) header.Add("Password");
             header.AddRange(new[] { "SnapshotStatus", "FrameTimestampUtc", "LastSeenUtc" });
@@ -30,6 +30,8 @@ namespace XProtectCameraAudit.Report
                     Csv(recorder.Name), Csv(hw.Name), Csv(cam.Name), cam.CameraGuid.ToString("D"),
                     Csv(hw.Model),
                     Csv(options.Redact ? "" : hw.Address),
+                    Csv(hw.MacAddress),
+                    Csv(hw.MacSource),
                     Csv(options.Redact ? "" : hw.UserName)
                 };
                 if (options.IncludePasswords) row.Add(Csv(hw.Password));

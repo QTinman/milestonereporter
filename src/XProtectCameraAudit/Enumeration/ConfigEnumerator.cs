@@ -71,6 +71,8 @@ namespace XProtectCameraAudit.Enumeration
                         UserName = options.Redact ? "" : Safe(() => hw.UserName, ""),
                         Password = options.IncludePasswords ? ReadHardwarePassword(hw) : ""
                     };
+                    if (!options.Redact)
+                        MacAddressResolver.Resolve(hw, hardware.Address, out hardware.MacAddress, out hardware.MacSource);
                     recorder.Hardwares.Add(hardware);
 
                     foreach (Camera cam in Safe(() => hw.CameraFolder.Cameras.ToList(), new List<Camera>()))

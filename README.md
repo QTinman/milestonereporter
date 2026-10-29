@@ -33,10 +33,15 @@ One process, one login, no API Gateway, no WebRTC, no PowerShell layer.
   XProtect system-info block** (system, site, version, management server,
   generated-at, camera counts), then a section per recording server → heading
   per hardware → card per camera. Each card shows **name, snapshot, frame time,
-  brand, IP, and user** (plus the device password with `--passwords`) — enough
+  brand, IP, MAC and user** (plus the device password with `--passwords`) — enough
   to recognize a physical camera in the field and source/configure a
   replacement. Disabled cameras (camera or hardware) are counted apart and
   listed last, not as faults. The CSV carries the same fields for pivoting.
+- **MAC address** — per device, for finding its switch port. Taken from
+  XProtect's hardware driver settings (read from the device when it was added);
+  failing that, from ARP when the device is on a subnet the tool's machine is on
+  (off-subnet ARP would give the router's MAC, so it is not tried). The CSV says
+  which (`MacSource`). Virtual devices (0.0.0.x) get none.
 - **Snapshot archive** — every run keeps each camera's last good thumbnail in
   `<output>\snapshots\<camera id>.jpg` (file time = frame time). A camera that
   breaks and stays broken longer than the recordings are kept still shows its
